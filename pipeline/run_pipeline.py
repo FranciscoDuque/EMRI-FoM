@@ -9,11 +9,11 @@ import io
 import healpy as hp
 
 # decide whether to run the full pipeline and generate the results
-run_pipeline = False
+run_pipeline = True
 # decide whether to assess the science objectives
-assess_science_objectives = False
+assess_science_objectives = True
 # decide whether to generate the data for the redshift horizon plot
-generate_redshift_horizon = True
+generate_redshift_horizon = False
 # decide whether to plot the redshift horizon plot
 plot_redshift_horizon = True
 
@@ -27,13 +27,13 @@ thr_err = [1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-1, 10., 10., 10., 10., 10.,     10.]
 # p0, phi0, theta0 are not used in the threshold
 
 # device: device to use on GPUs
-dev = 1
+dev = 2
 # defines the number of montecarlo runs over phases and sky locations
 # N_montecarlo: number of montecarlo runs over phases and sky locations
 Nmonte = 10
 
 #define the psd and response properties
-channels = 'AE'
+channels = 'AET'
 tdi2 = True
 model = 'scirdv1'
 esaorbits = True
@@ -43,7 +43,7 @@ include_foreground = True
 
 # horizon settings
 T_obs = 2.0 # observation time in years
-ntrials = 100 # number of samples over the extrinsic parameters
+ntrials = 10 # number of samples over the extrinsic parameters
 horizon_outdir = "horizon/data" # output directory for the horizon data
 horizon_plotdir = "horizon/figures" # output directory for the horizon plot
 
@@ -92,6 +92,15 @@ cosmo = standard_cosmology(zmax=10.0, zmin=1.e-5, zbin=100000)
 
 popinds = []
 popinds.append(5)
+
+if channels == "None": 
+        popinds.append(6)
+        popinds.append(7)
+        popinds.append(8)
+        popinds.append(9)
+        popinds.append(10)
+        popinds.append(11)
+
 popinds.append(12)
 param_names = np.delete(param_names, popinds).tolist()
 

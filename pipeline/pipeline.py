@@ -1,4 +1,4 @@
-# python pipeline.py --M 1e6 --mu 1e1 --a 0.5 --e_f 0.1 --T 1.0 --z 0.1 --repo test --psd_file TDI2_AE_psd.npy --dt 10.0 --use_gpu --N_montecarlo 1 --device 3 --repo test
+# python pipeline.py --M 1e6 --mu 1e1 --a 0.5 --e_f 0.1 --T 1.0 --z 0.1 --repo test --psd_file TDI2_AE_psd.npy --dt 10.0 --tdi2 --use_gpu --N_montecarlo 1 --device 3 --repo test
 import os
 import logging
 import argparse
@@ -45,7 +45,7 @@ def parse_arguments():
     parser.add_argument('--tdi2', action='store_true', default=False, help="Use 2nd generation TDI channels")
     parser.add_argument('--channels', type=str, default="AE", help="TDI channels to use")
     parser.add_argument('--model', type=str, default="scirdv1", help="Noise model to use")
-    
+   
     return parser.parse_args()
 
 def initialize_gpu(args):
@@ -74,19 +74,24 @@ def initialize_gpu(args):
 
 def initialize_waveform_generator(T, args, inspiral_kwargs_forward):
     backend = 'gpu' if args.use_gpu else 'cpu'
-    base_wave = GenerateEMRIWaveform("FastKerrEccentricEquatorialFlux", inspiral_kwargs=inspiral_kwargs_forward, force_backend=backend, sum_kwargs=dict(pad_output=True))
-    tdi_kwargs_esa = initialize_tdi_generator(args)
-    model = ResponseWrapper(
+    if args.channels == "None":
+        base_wave = GenerateEMRIWaveform("FastKerrEccentricEquatorialFlux", inspiral_kwargs=inspiral_kwargs_forward, force_backend=backend, sum_kwargs=dict(pad_output=True))
+        model = base_wave
+    else:
+        base_wave = GenerateEMRIWaveform("FastKerrEccentricEquatorialFlux", inspiral_kwargs=inspiral_kwargs_forward, force_backend=backend, sum_kwargs=dict(pad_output=True))
+        tdi_kwargs_esa = initialize_tdi_generator(args)
+        model = ResponseWrapper(
             base_wave, T, args.dt, 8, 7, t0=100000., flip_hx=True, use_gpu=args.use_gpu,
             remove_sky_coords=False, is_ecliptic_latitude=False, remove_garbage=True, **tdi_kwargs_esa
         )
+    
     return model
 
 def initialize_tdi_generator(args):
     orbits = "esa-trailing-orbits.h5" if args.esaorbits else "equalarmlength-orbits.h5"
     orbit_file = os.path.join(os.path.dirname(__file__), '..', 'lisa-on-gpu', 'orbit_files', orbits)
     orbit_kwargs = dict(orbit_file=orbit_file)
-    tdi_kwargs = dict(orbit_kwargs=orbit_kwargs, order=25, tdi="2nd generation", tdi_chan="AET")
+    tdi_kwargs = dict(orbit_kwargs=orbit_kwargs, order=25, tdi="2nd generation", tdi_chan=args.channels)
     return tdi_kwargs
 
 def generate_random_phases():
@@ -112,14 +117,11 @@ class transf_log_e_wave():
         # Forward attribute access to base_wave
         return getattr(self.base_wave, name)
 
-inspiral_kwargs_back = {"err": 1e-10,"integrate_backwards": True}
-inspiral_kwargs_forward = {"err": 1e-10,"integrate_backwards": False}
+inspiral_kwargs_back = {"err": 1e-13,"integrate_backwards": True}
+inspiral_kwargs_forward = {"err": 1e-13,"integrate_backwards": False}
 
-param_names = np.array(['M','mu','a','p0','e0','xI0','dist','qS','phiS','qK','phiK','Phi_phi0','Phi_theta0','Phi_r0'])
-popinds = []
-popinds.append(5)
-popinds.append(12)
-param_names = np.delete(param_names, popinds).tolist()
+
+
 
 if __name__ == "__main__":
 
@@ -130,9 +132,29 @@ if __name__ == "__main__":
     # create repository
     os.makedirs(args.repo, exist_ok=True)
 
+    param_names = np.array(['M','mu','a','p0','e0','xI0','dist','qS','phiS','qK','phiK','Phi_phi0','Phi_theta0','Phi_r0'])
+    popinds = []
+    popinds.append(5)
+
+    if args.channels == "None": 
+        popinds.append(6)
+        popinds.append(7)
+        popinds.append(8)
+        popinds.append(9)
+        popinds.append(10)
+        popinds.append(11)
+    
+    popinds.append(12)
+    
+    param_names = np.delete(param_names, popinds).tolist()
+
+
     # load psd
     #psd_wrap = load_psd(args.psd_file)
-    custom_psd_kwargs = {
+    if args.channels == "None":
+        custom_psd_kwargs = {}
+    else:    
+        custom_psd_kwargs = {
             'tdi2': args.tdi2,
             'channels': args.channels,
         }
@@ -200,6 +222,9 @@ if __name__ == "__main__":
 
     tic = time.time()
     waveform_out = model(*parameters)
+    if args.channels == "None":
+        #print("Waveform shape", waveform_out.shape)
+        waveform_out = [waveform_out.real, waveform_out.imag]
     toc = time.time()
     timing = toc - tic
     print("Time taken for one waveform generation: ", timing)
@@ -213,6 +238,11 @@ if __name__ == "__main__":
     # plot the waveform in the frequency domain
     # window the signal using scipy.signal.windows.tukey
     from scipy.signal.windows import tukey
+    #if args.channels == "None":
+        #window = xp.asarray(tukey(len(waveform_out), alpha=0.05))
+        #fft_waveform = xp.fft.rfft(waveform_out * window).get() *args.dt
+        #freqs = np.fft.rfftfreq(len(waveform_out), d=args.dt)
+    #else:    
     window = xp.asarray(tukey(len(waveform_out[0]), alpha=0.05))
     fft_waveform = xp.fft.rfft(waveform_out[0]*window).get() *args.dt
     freqs = np.fft.rfftfreq(len(waveform_out[0]), d=args.dt)
@@ -252,8 +282,22 @@ if __name__ == "__main__":
         # save the parameters to txt file
         np.savetxt(os.path.join(current_folder, "all_parameters.txt"), parameters.T, header=" ".join(param_names))
 
+        # Dynamically set channels based on args.channels
+        if args.channels == "A":
+            channels = ["A"]
+            noise_kwargs=dict(TDI="TDI2")
+        elif args.channels == "AE":
+            channels = ["A", "E"]
+            noise_kwargs=dict(TDI="TDI2")
+        elif args.channels == "AET":
+            channels = ["A", "E", "T"]
+            noise_kwargs=dict(TDI="TDI2")
+        else:
+            channels = ['I', 'II'] 
+            noise_kwargs = {}
+
         fish = StableEMRIFisher(*parameters, 
-                                dt=args.dt, T=T, EMRI_waveform_gen=EMRI_waveform_gen, noise_model=psd_wrap, noise_kwargs=dict(TDI="TDI2"), param_names=param_names, stats_for_nerds=False, use_gpu=args.use_gpu, 
+                                dt=args.dt, T=T, EMRI_waveform_gen=EMRI_waveform_gen, noise_model=psd_wrap, noise_kwargs=noise_kwargs, channels=channels, param_names=param_names, stats_for_nerds=False, use_gpu=args.use_gpu, 
                                 der_order=4., Ndelta=20, filename=current_folder,
                                 deltas = deltas,
                                 log_e = log_e, # useful for sources close to zero eccentricity
