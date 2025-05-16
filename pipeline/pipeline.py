@@ -311,29 +311,29 @@ if __name__ == "__main__":
     )
     
     
-    modeinds = [amp.l_arr, amp.m_arr, amp.n_arr]
+    #modeinds = [amp.l_arr, amp.m_arr, amp.n_arr]
 
-    # Apply mode selection with a threshold (
-    eps = 1e-4  
-    (teuk_modes_in, ylms_in, ls, ms, ns) = mode_selector(
-        teuk_modes,
-        ylms,
-        modeinds,
-        eps=eps,
-    )
+    # # Apply mode selection with a threshold (
+    # eps = 1e-4  
+    # (teuk_modes_in, ylms_in, ls, ms, ns) = mode_selector(
+    #     teuk_modes,
+    #     ylms,
+    #     modeinds,
+    #     eps=eps,
+    # )
 
-    print(
-        f"Noise-weighted mode selection reduced modes from {teuk_modes.shape[1]} to {teuk_modes_in.shape[1]}"
-    )
+    # print(
+    #     f"Noise-weighted mode selection reduced modes from {teuk_modes.shape[1]} to {teuk_modes_in.shape[1]}"
+    # )
     
-    # --- DEBUG: Print selected modes and enter interactive pdb ---
-    print("\n=== Selected Modes (l, m, n) ===")
-    for l, m, n in zip(ls.get(), ms.get(), ns.get()):
-        print(f"(l={l}, m={m}, n={n})")
+    # # --- DEBUG: Print selected modes and enter interactive pdb ---
+    # print("\n=== Selected Modes (l, m, n) ===")
+    # for l, m, n in zip(ls.get(), ms.get(), ns.get()):
+    #     print(f"(l={l}, m={m}, n={n})")
 
-    print(f"\nTotal modes kept: {teuk_modes_in.shape[1]}")
+    # print(f"\nTotal modes kept: {teuk_modes_in.shape[1]}")
     
-    pdb.set_trace()  # Pause execution here for inspection
+    # pdb.set_trace()  # Pause execution here for inspection
 
 
     # initialize the waveform generator
