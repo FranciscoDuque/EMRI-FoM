@@ -1,0 +1,4 @@
+Total runtime: 1589.97 seconds
+Runtime for source EMRInr8: 530.01 seconds
+Runtime for source EMRInr6: 529.62 seconds
+Runtime for source EMRInr4: 530.33 seconds

@@ -1,0 +1,3 @@
+|    |   M central black hole mass |   mu secondary black hole mass |   a dimensionless central object spin |   p_f final semi-latus rectum |   e_f final eccentricity |       z redshift |   dist luminosity distance in Gpc |   T inspiral duration in years |
+|---:|----------------------------:|-------------------------------:|--------------------------------------:|------------------------------:|-------------------------:|-----------------:|----------------------------------:|-------------------------------:|
+|  0 |            1.0000000000e+06 |               1.0000000000e+01 |                      5.0000000000e-01 |              4.4769440854e+00 |         1.0000000000e-01 | 1.0000000000e-01 |                  4.8067720771e-01 |               1.0000000000e+00 |
